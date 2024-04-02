@@ -610,7 +610,11 @@ public class PageCreatorService {
 
         //prev
         str.append(createPaginationElement("""
-                <span aria-hidden="true">&laquo;</span><span class="sr-only">Previous</span>""", pageName + ((curPageNum != 1) ? (prefix + (curPageNum - 1)) : "")
+                <span aria-hidden="true">&laquo;&nbsp;</span><span class="sr-only">
+                """
+                + i18n.getString("sitetest.prev")
+                + """
+                  </span>""", pageName + ((curPageNum != 1) ? (prefix + (curPageNum - 1)) : "")
                 + (ext != null ? "." + ext : ""), false, (curPageNum == 0)));
         //first
         if (start > 0) {
@@ -632,7 +636,11 @@ public class PageCreatorService {
         }
         //next
         str.append(createPaginationElement("""
-                <span aria-hidden="true">&raquo;</span><span class="sr-only">Next</span>""", pageName + (prefix + (curPageNum + 1) + (ext != null ? "." + ext : "")), false, ((curPageNum + 1) > (allPagesCount - 1))));
+                <span class="sr-only">
+                """ +
+                i18n.getString("sitetest.next")  + """
+                        </span><span aria-hidden="true">&nbsp;&raquo;</span>
+                        """, pageName + (prefix + (curPageNum + 1) + (ext != null ? "." + ext : "")), false, ((curPageNum + 1) > (allPagesCount - 1))));
 
         str.append("""
                 </ul>""");
