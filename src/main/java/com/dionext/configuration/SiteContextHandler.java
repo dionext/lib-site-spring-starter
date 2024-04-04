@@ -52,7 +52,6 @@ public class SiteContextHandler implements HandlerInterceptor {
         log.debug("contextUrl: " + contextUrl);
 
         int level = 0;
-        int langLevel = 0;
         SiteSettings siteSettings = null;
         String contextName = tokens.length > 1 ? tokens[1] : "";
         if (!Strings.isNullOrEmpty(contextName)
@@ -61,7 +60,6 @@ public class SiteContextHandler implements HandlerInterceptor {
         }
         if (siteSettings != null) {
             level++;
-            langLevel++;
         } else {
             //to do default
         }
@@ -101,7 +99,6 @@ public class SiteContextHandler implements HandlerInterceptor {
                 //to do redirect
             }
             level++;
-            langLevel++;
         } else {
 
             AcceptHeaderLocaleResolver acceptHeaderLocaleResolver = applicationContext.getBean(AcceptHeaderLocaleResolver.class);
@@ -138,7 +135,11 @@ public class SiteContextHandler implements HandlerInterceptor {
             relativePath = contextUrl.substring(startRelativePathIndex + 1);
 
         if (relativePath == null || relativePath.trim().isEmpty()) {
+            //send 302
             response.sendRedirect(contextUrl + (contextUrl.endsWith("/") ? "" : "/") + siteSettings.getMainPage());
+            //send 301
+            //use response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+            //use response.setHeader("Location", newURL);
             return false;
 
         }
@@ -148,7 +149,6 @@ public class SiteContextHandler implements HandlerInterceptor {
 
         pageInfo.setRelativePath(relativePath);
         pageInfo.setLevel(level);
-        pageInfo.setLangLevel(langLevel);
         pageInfo.parseAdditionalParams();
 
         log.debug("Processing relativePath: " + pageInfo.getRelativePath() + " level: " + pageInfo.getLevel());

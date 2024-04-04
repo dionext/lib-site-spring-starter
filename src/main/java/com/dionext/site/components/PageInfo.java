@@ -27,7 +27,6 @@ public class PageInfo {
     private String lang;
     private Locale locale = Locale.ENGLISH;
     private int level; //page level
-    private int langLevel;
     private String siteContextPrefix;
     private String pageTitle;
     private String keywords;
@@ -49,14 +48,6 @@ public class PageInfo {
 
     public void setRequest(HttpServletRequest request) {
         this.request = request;
-    }
-
-    public int getLangLevel() {
-        return langLevel;
-    }
-
-    public void setLangLevel(int langLevel) {
-        this.langLevel = langLevel;
     }
 
     public String getSiteContextPrefix() {
@@ -249,14 +240,9 @@ public class PageInfo {
         return getLevelString(offset);
     }
 
-    public String getOffsetStringToLangLevel() {
-        int offset = getLevel() - getLangLevel();
-        return getLevelString(offset);
-    }
-
-    public String getOffsetStringToImageLevel() {
+    public String getOffsetStringToContextLevel() {
         int offset = getLevel() - 1;
-        if (getSiteContextPrefix() != null) offset--;
+        if (siteContextPrefix != null) offset--;
         return getLevelString(offset);
     }
 

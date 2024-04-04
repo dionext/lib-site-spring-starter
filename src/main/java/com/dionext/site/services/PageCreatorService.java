@@ -48,7 +48,7 @@ public class PageCreatorService {
     public String createHeadBottom() {
         return MessageFormat.format("""
                         <link href="{0}" rel="stylesheet"/>""",
-                pageInfo.getOffsetStringToImageLevel() + "images/main.css");
+                pageInfo.getOffsetStringToContextLevel() + "images/main.css");
 
     }
 
@@ -364,7 +364,7 @@ public class PageCreatorService {
                     <meta name="theme-color" content="#ffffff"/>
                     <link rel="shortcut icon" href="{0}/favicon.ico"/>
                     <meta name="msapplication-config" content="{0}/browserconfig.xml"/>
-                    """, pageInfo.getOffsetStringToImageLevel() + "images");
+                    """, pageInfo.getOffsetStringToContextLevel() + "images");
         } else return null;
     }
 
@@ -442,7 +442,7 @@ public class PageCreatorService {
                         <ul class="dropdown-menu">""" +
                 """
                         <li><a class="dropdown-item" href=\"""" +
-                pageInfo.getOffsetStringToLangLevel() +
+                pageInfo.getOffsetStringToContextLevel() +
                 (!ru ? "ru/" : "en/") +
                 pageInfo.getRelativePath() +
                 """
@@ -511,7 +511,7 @@ public class PageCreatorService {
                     """.stripTrailing());
             if (!imageDrawInfo.getHref().startsWith("http")
                     && imageDrawInfo.getHref().startsWith("images")) {
-                str.append(pageInfo.getOffsetStringToImageLevel());
+                str.append(pageInfo.getOffsetStringToContextLevel());
             }
             str.append(imageDrawInfo.getHref());
             str.append("""
@@ -543,7 +543,7 @@ public class PageCreatorService {
                  src="
                 """.stripTrailing());
         if (!imageDrawInfo.getImagePath().startsWith("http")) {
-            str.append(pageInfo.getOffsetStringToImageLevel());
+            str.append(pageInfo.getOffsetStringToContextLevel());
         }
         str.append(imageDrawInfo.getImagePath());
         str.append("""
@@ -583,7 +583,7 @@ public class PageCreatorService {
     }
 
     public String createPagination(String pageName, String prefix, String ext, int curPageNum, int allPagesCount) {
-
+        if (allPagesCount <= 1) return "";
         int maxVisible = 8;
         int start = curPageNum - (maxVisible / 2);
         if (start < 0) {
@@ -612,7 +612,7 @@ public class PageCreatorService {
         str.append(createPaginationElement("""
                 <span aria-hidden="true">&laquo;&nbsp;</span><span class="sr-only">
                 """
-                + i18n.getString("sitetest.prev")
+                + i18n.getString("site-spring-starter.prev")
                 + """
                   </span>""", pageName + ((curPageNum != 1) ? (prefix + (curPageNum - 1)) : "")
                 + (ext != null ? "." + ext : ""), false, (curPageNum == 0)));
@@ -638,7 +638,7 @@ public class PageCreatorService {
         str.append(createPaginationElement("""
                 <span class="sr-only">
                 """ +
-                i18n.getString("sitetest.next")  + """
+                i18n.getString("site-spring-starter.next")  + """
                         </span><span aria-hidden="true">&nbsp;&raquo;</span>
                         """, pageName + (prefix + (curPageNum + 1) + (ext != null ? "." + ext : "")), false, ((curPageNum + 1) > (allPagesCount - 1))));
 
@@ -755,23 +755,18 @@ public class PageCreatorService {
 
     public String createBodySearchEngineScripts() {
         if (!Strings.isNullOrEmpty(pageInfo.getSiteSettings().getGoogleTagID())) {
-            return MessageFormat.format("""
-                    <!-- Google tag (gtag.js) -->
-                    <script async src="https://www.googletagmanager.com/gtag/js?id={0}"></script>
-
-                      gtag('config', '{0}');
-                    </script>
-                    """, pageInfo.getSiteSettings().getGoogleTagID())
-                    + """
-                            <script>
-                              window.dataLayer = window.dataLayer || [];
-                              function gtag(){dataLayer.push(arguments);}
-                              gtag('js', new Date());
-                    """
-                    + MessageFormat.format("""
-                      gtag('config', '{0}');
-                    </script>
-                    """, pageInfo.getSiteSettings().getGoogleTagID());
+            //some problem with using MessageFormat, so we use replace
+            return """
+              <!-- Google tag (gtag.js) -->
+              <script async src="https://www.googletagmanager.com/gtag/js?id=TAG_ID"></script>
+              <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+            
+                gtag('config', 'TAG_ID');
+              </script>
+              """.replace("TAG_ID", pageInfo.getSiteSettings().getGoogleTagID());
         } else return "";
     }
 

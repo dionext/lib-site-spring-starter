@@ -1,12 +1,13 @@
 package com.dionext.utils.exceptions;
 
 public class BaseException extends RuntimeException {
-    private String message;
-    private Throwable originalException;
+    private final String message;
+    private final Throwable originalException;
 
     public BaseException(String message) {
         super(message);
         this.message = message;
+        this.originalException = null;
     }
     public BaseException(Throwable cause) {
         super(cause);
