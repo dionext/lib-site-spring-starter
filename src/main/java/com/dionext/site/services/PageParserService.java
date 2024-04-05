@@ -454,28 +454,35 @@ public class PageParserService {
     }
 
     protected void adjustBlockquote(Element blockquote) {
-        String cl = blockquote.attr("class");
-        if (!cl.contains("blockquote")) {
-            cl = cl + " blockquote";
-        }
-        if (!cl.contains("blockquote-reverse")) {
-            cl = cl + " blockquote-reverse";
-        }
-        blockquote.attr("class", cl);
 
-        if (blockquote.select("footer").first() == null) {
-            String text = blockquote.text();
-            int i = text.lastIndexOf("<br>"); //to do
+        if (!"figure".equals(blockquote.parent().nodeName()) ) {
+            Element figure = new Element(Tag.valueOf("figure"), "");
+            figure.attr("class", "bg-light p-3");
+            Element blockquoteNew = new Element(Tag.valueOf("blockquote"), "");
+            blockquoteNew.attr("class", "blockquote");
+            figure.appendChild(blockquoteNew);
+
+            String html = blockquote.html();
+            int i = html.lastIndexOf("<br");
             if (i > -1) {
-                blockquote.select("*").remove();
-                blockquote.appendChild(new TextNode(text.substring(0, i)));
+                int j = html.indexOf(">", i);
+                if (j > -1 && j < html.length() - 1) {
+                    String text = html.substring(0, i);
+                    String ref = html.substring(j + 1);
 
-                Element footer = new Element(Tag.valueOf("footer"), "");
-                footer.attr("class", "blockquote-footer");
-
-                footer.appendChild(new TextNode(text.substring(i + 4)));
-                blockquote.appendChild(footer);
+                    blockquoteNew.html(text);
+                    Element footer = new Element(Tag.valueOf("figcaption"), "");
+                    footer.attr("class", "blockquote-footer");
+                    Element cite = new Element(Tag.valueOf("cite"), "");
+                    footer.appendChild(cite);
+                    cite.html(ref);
+                    figure.appendChild(footer);
+                }
+                else blockquoteNew.html(html);
             }
+            else blockquoteNew.html(html);
+
+            blockquote.replaceWith(figure);
         }
     }
 
