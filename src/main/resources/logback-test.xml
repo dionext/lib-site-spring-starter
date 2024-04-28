@@ -1,0 +1,3 @@
+<configuration>
+    <!-- we need this file to disable ch.qos.logback messages -->
+</configuration>
