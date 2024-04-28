@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.nodes.TextNode;
 import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,7 @@ public class PageParserService {
     public SrcPageContent getSimpleSitePageSource(String relPath) {
         if (relPath.indexOf(".") < 0) relPath = relPath + ".htm";
         String src = resourceService.findI18nResourceAsString(pageInfo.getSiteStoragePaths(),
-                pageInfo.getSiteSettings().isSiteLangInPath() ? pageInfo.getLang() : null,
+                pageInfo.getSiteSettings().isSiteLangInPath() ? pageInfo.getPathLang() : null,
                 pageInfo.getSiteSettings().isSiteLangInPath() ? pageInfo.getDefaultLang() : null,
                 relPath);
         return processPage(src);

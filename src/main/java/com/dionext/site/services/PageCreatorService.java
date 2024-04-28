@@ -1,9 +1,7 @@
 package com.dionext.site.services;
 
 import com.dionext.site.components.PageInfo;
-import com.dionext.site.dto.Align;
-import com.dionext.site.dto.ImageDrawInfo;
-import com.dionext.site.dto.SrcPageContent;
+import com.dionext.site.dto.*;
 import com.dionext.site.properties.NavItem;
 import com.dionext.utils.services.I18nService;
 import com.google.common.base.Strings;
@@ -13,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -64,8 +63,10 @@ public class PageCreatorService {
 
     public String createHtmlAll(SrcPageContent srcPageContent) {
 
-        if (!Strings.isNullOrEmpty(srcPageContent.getTitle())) pageInfo.setPageTitle(srcPageContent.getTitle());
-        if (!Strings.isNullOrEmpty(srcPageContent.getKeywords())) pageInfo.setKeywords(srcPageContent.getKeywords());
+        if (!Strings.isNullOrEmpty(srcPageContent.getTitle()))
+            pageInfo.setPageTitle(srcPageContent.getTitle());
+        if (!Strings.isNullOrEmpty(srcPageContent.getKeywords()))
+            pageInfo.setKeywords(srcPageContent.getKeywords());
         if (!Strings.isNullOrEmpty(srcPageContent.getDescription()))
             pageInfo.setDescription(srcPageContent.getDescription());
 
@@ -209,18 +210,7 @@ public class PageCreatorService {
         str.append("</div>");
 
         //right
-        str.append("""
-                <div class="collapse navbar-collapse justify-content-md-end" id="navbar">""");
-        str.append("""
-                <ul class="navbar-nav">""");
-        if (pageInfo.getPageLangs().length > 1 && pageInfo.getRu()
-                && pageInfo.isAnotherLangPageExist()) {
-            str.append(createBodyTopMenuLangSelector());
-        }
-        str.append("</ul>");
-        str.append("</div>");
-        str.append("</nav>");
-        str.append("</div>");
+        str.append(createBodyTopMenuLangSelector());
         str.append("</section>");
         return str.toString();
     }
@@ -322,31 +312,51 @@ public class PageCreatorService {
     }
 
     public String createHeadLocaleLinks() {
-        String relUri = pageInfo.getRelativePath();
-        StringBuilder str = new StringBuilder();
-        if (pageInfo.getPageLangs().length > 1) {
-            for (String lang : pageInfo.getPageLangs()) {
-                str.append(MessageFormat.format("""
-                                <link rel="alternate" hreflang="{0}" href="{1}" />""",
-                        lang, pageInfo.getDomainUrl() + "/" + lang + "/" + relUri));
-            }
-        }
 
-        String lang = pageInfo.getDefaultLang();
-        if (lang != null) {
-            str.append(MessageFormat.format("""
-                            <link rel="alternate" hreflang="x-default" href="{0}" />""",
-                    pageInfo.getDomainUrl() + "/" + (pageInfo.isSiteLangInPath() ? (lang + "/") : "") + relUri));
+
+        StringBuilder str = new StringBuilder();
+        PageUrl pageUrl =  getThisPageUrl();
+        for(PageUrlAlt pageUrlAlt : pageUrl.getAltUrls()){
+            MessageFormat.format("""
+                                <link rel="alternate" hreflang="{1}" href="{2}" />""",
+                    makeFullPageAddress(pageUrl, pageUrlAlt));
         }
+        //default lang
+        str.append(MessageFormat.format("""
+                            <link rel="alternate" hreflang="x-default" href="{0}" />""",
+                    makeFullPageAddressForDefaultLang(pageUrl)));
+        //canonical
+        str.append(MessageFormat.format("""
+                            <link rel="canonical" href="{0}" />""",
+                makeFullPageAddressForDefaultLang(pageUrl)));
         return str.toString();
     }
+
+    public String makeFullPageAddress(PageUrl pageUrl, PageUrlAlt pageUrlAlt){
+        return pageInfo.getDomainUrl() + "/"
+                + (pageInfo.isSiteLangInPath() ? (pageUrlAlt.getLang() + "/") : "") + pageUrl.getRelativePath();
+    }
+    public String makeFullPageAddressForDefaultLang(PageUrl pageUrl){
+        return pageInfo.getDomainUrl() + "/"
+                + (pageInfo.isSiteLangInPath() ? (pageInfo.getDefaultLang() + "/") : "") + pageUrl.getRelativePath();
+    }
+    public PageUrl getThisPageUrl(){
+        PageUrl pageUrl = new PageUrl();
+        pageUrl.setRelativePath(pageInfo.getRelativePath());
+        for (String lang : pageInfo.getPageLangs()) {
+            PageUrlAlt pageUrlAlt = new PageUrlAlt();
+            pageUrlAlt.setLang(lang);
+        }
+        return pageUrl;
+    }
+
 
     public String createHeadContentType() {
         return MessageFormat.format("""
                         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
                         <meta charset="utf-8"/>
                         <meta http-equiv="Content-Language" content="{0}"/>""",
-                pageInfo.getLang());
+                pageInfo.getLocaleLang());
 
     }
 
@@ -416,7 +426,7 @@ public class PageCreatorService {
             str.append(MessageFormat.format("""
                     <meta property="og:site_name" content="{0}"/>""", pageInfo.getPageTitle()));
             str.append(MessageFormat.format("""
-                    <meta property="og:locale" content="{0}"/>""", pageInfo.getLang()));
+                    <meta property="og:locale" content="{0}"/>""", pageInfo.getLocaleLang()));
         }
         return str.toString();
     }
@@ -424,33 +434,42 @@ public class PageCreatorService {
 
     //to do multi lang
     public String createBodyTopMenuLangSelector() {
-        boolean ru = "ru".equals(pageInfo.getLang());
+        if (pageInfo.getPathLang() != null && pageInfo.getPageLangs().length > 1
+                && pageInfo.isAnotherLangPageExist()) {
+            StringBuilder str = new StringBuilder();
+            str.append("""
+                <div class="collapse navbar-collapse justify-content-md-end" id="navbar">""");
+            str.append("""
+                <ul class="navbar-nav">""");
 
-        String enLink = """
-                <span class="flag-icon flag-icon-gb"> </span> En""";
-        String ruLink = """
-                <span class="flag-icon flag-icon-ru"> </span> Ru""";
+            //current lang
+            String dlang = pageInfo.getLocaleLang();
+              str.append(MessageFormat.format("""
+                      <li class="nav-item dropdown active">
+                   <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+                      <span class="flag-icon flag-icon-{0}"> </span> {1}</a>"""
+                    , "en".equals(dlang)?"gb":dlang, dlang));
 
-        return """
-                <li class="nav-item dropdown active">""" +
-                """
-                        <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
-                        """ +
-                (ru ? ruLink : enLink) +
-                "</a>" +
-                """
-                        <ul class="dropdown-menu">""" +
-                """
-                        <li><a class="dropdown-item" href=\"""" +
-                pageInfo.getOffsetStringToContextLevel() +
-                (!ru ? "ru/" : "en/") +
-                pageInfo.getRelativePath() +
-                """
-                        ">""" +
-                (!ru ? ruLink : enLink) +
-                "</a><li>" +
-                """
-                        </li>""";
+            //other langs
+            str.append("""
+                        <ul class="dropdown-menu">
+                    """);
+            for(String lang : pageInfo.getPageLangs()){
+                    str.append(MessageFormat.format("""
+                       <li>
+                       <a class="dropdown-item" href="{0}"><span class="flag-icon flag-icon-{1}"></span> {2}</a>
+                       </li>
+                       """
+                       ,pageInfo.getOffsetStringToContextLevel() + lang + "/" + pageInfo.getRelativePath(),
+                         "en".equals(lang)?"gb":lang, lang));
+            }
+            str.append("</ul></li><!-- bbb -->");
+            str.append("</ul>");
+            str.append("</div>");
+
+            return str.toString();
+        }
+        else return "";
     }
 
 
@@ -505,6 +524,11 @@ public class PageCreatorService {
                              class="external"
                             """.stripTrailing());
                 }
+            }
+            else if (imageDrawInfo.isNoindex()){
+                str.append("""
+                         rel="noindex"
+                        """.stripTrailing());
             }
             str.append("""
                      href="
@@ -580,6 +604,20 @@ public class PageCreatorService {
 
     public String createPagination(PageInfo pageInfo, int allPagesCount) {
         return createPagination(pageInfo.getSiteSettings().getListPrefix(), pageInfo.getSiteSettings().getListPageDelimiter(), pageInfo.getExtension(), pageInfo.getPageNum(), allPagesCount);
+    }
+    public List<PageUrl> createPaginationForSitemap(PageInfo pageInfo, int allPagesCount) {
+        return createPaginationForSitemap(pageInfo.getSiteSettings().getListPrefix(), pageInfo.getSiteSettings().getListPageDelimiter(), pageInfo.getExtension(), allPagesCount);
+    }
+
+    public List<PageUrl> createPaginationForSitemap(String pageName, String prefix, String ext,  int allPagesCount) {
+        List<PageUrl> list = new ArrayList<>();
+        for (int i = 0; i < allPagesCount; i++){
+            String href = pageName + ((i != 0) ? (prefix + i) : "") + (ext != null ? "." + ext : "");
+            PageUrl pu = new PageUrl();
+            pu.setRelativePath(href);
+            list.add(pu);
+        }
+        return list;
     }
 
     public String createPagination(String pageName, String prefix, String ext, int curPageNum, int allPagesCount) {
@@ -661,10 +699,14 @@ public class PageCreatorService {
         str.append("""
                 ">""");
         str.append("""
-                <a class="page-link" href=\"""");
-        str.append(href);
-        str.append("""
-                \"""");
+                <a class="page-link" """);
+        if (!disable) {
+            str.append("""
+                    href=\"""");
+            str.append(href);
+            str.append("""
+                    \"""");
+        }
         str.append("""
                  aria-label="
                 """.stripTrailing());
@@ -694,6 +736,33 @@ public class PageCreatorService {
         }
         str.append(value);
         str.append("</li>");
+        return str.toString();
+    }
+
+    public String createHrefLink(String href, String text, String title) {
+        if (Strings.isNullOrEmpty(href)) {
+            return "";
+        }
+        StringBuilder str = new StringBuilder();
+        str.append("""
+                <a""");
+        if (title != null) {
+            str.append("""
+                     title="
+                    """.stripTrailing());
+            str.append(title);
+            str.append("""
+                    \"""");
+        }
+        str.append(" ");
+        str.append("""
+                href="
+                """.stripTrailing());
+        str.append(href);//to do
+        str.append("""
+                ">""");
+        str.append(text);
+        str.append("</a>");
         return str.toString();
     }
 
@@ -729,7 +798,7 @@ public class PageCreatorService {
     public String createHtmlBeginTag() {
         return """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:og="http://ogp.me/ns#" lang="   """
-                + pageInfo.getLang()
+                + pageInfo.getLocaleLang()
                 + """
                 ">
                 """;
@@ -769,5 +838,9 @@ public class PageCreatorService {
               """.replace("TAG_ID", pageInfo.getSiteSettings().getGoogleTagID());
         } else return "";
     }
-
+    public List<PageUrl> findAllPages() {
+        return resourceService.findAllPages(pageInfo.getSiteStoragePaths(),
+                pageInfo.getSiteSettings().isSiteLangInPath() ?
+                pageInfo.getPageLangs():null);
+    }
 }

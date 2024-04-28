@@ -24,9 +24,12 @@ public class PageInfo {
     private String id;
     private int pageNum;
     private boolean list;
-    private String lang;
+    private String pathLang;
     private Locale locale = Locale.ENGLISH;
-    private int level; //page level
+    /**
+     * count of segments in request.getRequestURI()
+     */
+    private int level;
     private String siteContextPrefix;
     private String pageTitle;
     private String keywords;
@@ -59,6 +62,7 @@ public class PageInfo {
     }
 
     public String[] getPageLangs() {
+        if (siteSettings == null) return new String[]{};
         return siteSettings.getSiteLangs();
     }
 
@@ -83,16 +87,21 @@ public class PageInfo {
         this.relativePath = relativePath;
     }
 
-    public String getLang() {
-        return lang;
+    public String getPathLang() {
+        return pathLang;
+    }
+    public String getLocaleLang() {
+        return locale.getLanguage();
     }
 
-    public void setLang(String lang) {
-        this.lang = lang;
+    public void setPathLang(String pathLang) {
+        this.pathLang = pathLang;
     }
 
     public String getDefaultLang() {
-        return siteSettings.getSiteLangs().length > 0 ? siteSettings.getSiteLangs()[0] : null;
+        if (siteSettings == null || siteSettings.getSiteLangs() == null || siteSettings.getSiteLangs().length == 0 )
+            return locale.getLanguage();
+        return siteSettings.getSiteLangs()[0];
     }
 
     public int getLevel() {
@@ -108,41 +117,80 @@ public class PageInfo {
     }
 
     public String getPageTitle() {
-        return pageTitle != null ? pageTitle : siteSettings.getSiteTitle().getLabel(i18n);
+        if (pageTitle != null) return pageTitle;
+        else {
+            if (siteSettings != null)
+                return siteSettings.getSiteTitle().getLabel(i18n);
+            else return null;
+        }
     }
-
     public void setPageTitle(String pageTitle) {
         this.pageTitle = pageTitle;
     }
 
-    public String getKeywords() {
+    public void addPageTitle(String pageTitle) {
         StringBuilder str = new StringBuilder();
-        if (keywords != null) str.append(keywords);
-        String siteKeywords = siteSettings.getKeywords().getLabel(i18n);
-        if (!isOfflineCreationMode() && siteKeywords != null) {
-            if (str.length() > 0) str.append(", ");
-            str.append(siteKeywords);
+        if (pageTitle != null) {
+            str.append(pageTitle);
+            String siteTitle = siteSettings.getSiteTitle().getLabel(i18n);
+            if (siteTitle != null) {
+                if (str.length() > 0 && !str.toString().endsWith("."))
+                    str.append(". ");
+                str.append(siteTitle);
+            }
+            this.pageTitle =  str.length() > 0 ? str.toString() : "";
         }
-        return str.length() > 0 ? str.toString() : null;
     }
 
+    public String getKeywords() {
+        if (keywords != null) return keywords;
+        else {
+            if (siteSettings != null)
+                return siteSettings.getKeywords().getLabel(i18n);
+            else return null;
+        }
+    }
     public void setKeywords(String keywords) {
         this.keywords = keywords;
     }
 
-    public String getDescription() {
+    public void addKeywords(String keywords) {
         StringBuilder str = new StringBuilder();
-        if (description != null) str.append(description);
-        String siteDescription = siteSettings.getDescription().getLabel(i18n);
-        if (!isOfflineCreationMode() && siteDescription != null) {
-            if (str.length() > 0) str.append(". ");
-            str.append(siteDescription);
+        if (keywords != null) {
+            str.append(keywords);
+            String siteKeywords = siteSettings.getKeywords().getLabel(i18n);
+            if (siteKeywords != null) {
+                if (str.length() > 0) str.append(", ");
+                str.append(siteKeywords);
+            }
+            this.keywords = str.length() > 0 ? str.toString() : null;
         }
-        return str.length() > 0 ? str.toString() : null;
     }
 
+    public String getDescription() {
+        if (description != null) return description;
+        else {
+            if (siteSettings != null)
+                return siteSettings.getDescription().getLabel(i18n);
+            else return null;
+        }
+    }
     public void setDescription(String description) {
         this.description = description;
+    }
+    public void addDescription(String description)
+    {
+        StringBuilder str = new StringBuilder();
+        if (description != null) {
+            str.append(description);
+            String siteDescription = siteSettings.getDescription().getLabel(i18n);
+            if (siteDescription != null) {
+                if (str.length() > 0 && !str.toString().endsWith("."))
+                    str.append(". ");
+                str.append(siteDescription);
+            }
+            this.description = str.length() > 0 ? str.toString() : null;
+        }
     }
 
     public String getPageImage() {
@@ -208,16 +256,9 @@ public class PageInfo {
     }
 
     //////////////
-    public boolean getRu() {
-        return "ru".equals(getLang());
-    }
 
     public String getPageUrl() {
-        return getDomainUrl() + "/" + getLang() + "/" + getRelativePath();
-    }
-
-    public String getLangUrl() {
-        return getDomainUrl() + "/" + getLang();
+        return getDomainUrl() + (getPathLang() != null ?("/" + getPathLang()):"") + "/" + getRelativePath();
     }
 
     public String getDomainUrl() {
@@ -233,13 +274,39 @@ public class PageInfo {
         return str.toString();
     }
 
+    /**
+     * Example:
+     * http://domain.com/context/lang/folder1/folder2/page.htm
+     * level is 5
+     * offset is 2 if context and lang used for this site
+     * http://domain.com/context/lang/folder1/folder2/../../page.htm
+     * new position
+     * http://domain.com/context/lang/newpage.htm
+     *
+     * http://domain.com/context/folder1/folder2/page.htm
+     * level is 4
+     * offset is 2 if context used for this site, but lang is not
+     * http://domain.com/context/folder1/folder2/../../page.htm
+     * new position
+     * http://domain.com/context/newpage.htm
+     * @return
+     */
     public String getOffsetStringToNavigationRoot() {
         int offset = getLevel() - 1;
         if (siteContextPrefix != null) offset--;
-        if (siteSettings.isSiteLangInPath()) offset--;
+        if (pathLang != null) offset--;
         return getLevelString(offset);
     }
 
+    /**
+     * http://domain.com/context/lang/folder1/folder2/page.htm
+     * level is 5
+     * offset is 3
+     * http://domain.com/context/lang/folder1/folder2/../../../page.htm
+     * new position
+     * http://domain.com/context/newpage.htm
+     * @return
+     */
     public String getOffsetStringToContextLevel() {
         int offset = getLevel() - 1;
         if (siteContextPrefix != null) offset--;

@@ -15,6 +15,8 @@ public class ImageDrawInfo {
     private String style;
     private String addClass;
 
+    private boolean noindex;
+
     public String getImagePath() {
         return imagePath;
     }
@@ -117,5 +119,13 @@ public class ImageDrawInfo {
 
     public void setAddClass(String addClass) {
         this.addClass = addClass;
+    }
+
+    public boolean isNoindex() {
+        return noindex;
+    }
+
+    public void setNoindex(boolean noindex) {
+        this.noindex = noindex;
     }
 }

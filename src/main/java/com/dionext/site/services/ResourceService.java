@@ -1,11 +1,14 @@
 package com.dionext.site.services;
 
 import com.dionext.site.dto.MediaImageInfo;
+import com.dionext.site.dto.PageUrl;
+import com.dionext.site.dto.PageUrlAlt;
 import com.dionext.utils.FileUtils;
 import com.dionext.utils.OUtils;
 import com.dionext.utils.exceptions.DioRuntimeException;
 import com.dionext.utils.exceptions.ResourceFindException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -18,15 +21,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Service
+@Slf4j
 public class ResourceService {
     private TemplateEngine templateEngine;
 
@@ -153,6 +158,61 @@ public class ResourceService {
             ctx.setVariable(e.getKey(), e.getValue());
         }
         return templateEngine.process(templateName, ctx);
+    }
+    public List<PageUrl> findAllPages(String[] prefixes, String[] langs) {
+        Map<String, PageUrl> filesMap = new HashMap<>();
+        if (langs != null) {
+            for (String lang : langs) {
+                for (String prefix : prefixes) {
+                    findAllPagesForLang(lang, prefix, filesMap);
+                }
+            }
+        }
+        else{
+            for (String prefix : prefixes) {
+                findAllPagesForLang(null, prefix, filesMap);
+            }
+        }
+        return filesMap.values().stream().toList();
+    }
+
+    private void findAllPagesForLang(String lang, String prefix, Map<String, PageUrl> filesMap) {
+        Resource resource = resourceLoader.getResource(prefix + (lang != null ? ("/" + lang):""));
+        try {
+            if (resource.exists()) {
+                Path rootPath = resource.getFile().toPath();
+                try (Stream<Path> stream = Files.find(rootPath,
+                        Integer.MAX_VALUE,
+                        (filePath, fileAttr) -> {
+                            if (!fileAttr.isRegularFile()) return false;
+                            String fileName = filePath.getName(filePath.getNameCount() - 1).toString();
+                            Path relPath = rootPath.relativize(filePath);
+                            String firstFolder = relPath.getNameCount() > 0 ? relPath.getName(0).toString(): null;
+
+                            if (".git".equals(firstFolder)) return false;
+                            if ("images".equals(firstFolder)) return false;
+                            if ("LICENSE".equals(firstFolder)) return false;
+                            if (fileName.startsWith("_")) return false;
+                            return true;
+                        }  )) {
+                    stream.forEach(filePath -> {
+                        String relPath = rootPath.relativize(filePath).toString().replace('\\', '/');
+                        PageUrl pageUrl = filesMap.computeIfAbsent(relPath, k -> {
+                            PageUrl p = new PageUrl();
+                            p.setRelativePath(relPath);
+                            return p;
+                        });
+                        if (lang != null) {
+                            PageUrlAlt pageUrlAlt = new PageUrlAlt();
+                            pageUrlAlt.setLang(lang);
+                            pageUrl.getAltUrls().add(pageUrlAlt);//to do
+                        }
+                    });
+                }
+            }
+        } catch (IOException e) {
+            throw new DioRuntimeException(e);
+        }
     }
 
 }

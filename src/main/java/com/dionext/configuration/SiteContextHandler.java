@@ -17,6 +17,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -44,115 +46,132 @@ public class SiteContextHandler implements HandlerInterceptor {
         this.applicationContext = applicationContext;
     }
 
+    private boolean redirectToMainPage(HttpServletResponse response)  {
+        //send 302 response.sendRedirect
+        //send 301
+        response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+        String redirectedUrl = (pageInfo.isSiteLangInPath()?(pageInfo.getLocaleLang() + "/"):"") +
+                pageInfo.getSiteSettings().getMainPage();
+        response.setHeader("Location", redirectedUrl);
+        return false;
+    }
+    private boolean redirectToLangPage(HttpServletResponse response) {
+        // response.sendRedirect send 302
+        // send 301
+        response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+        String redirectedUrl =
+                pageInfo.getOffsetStringToContextLevel() +
+                (pageInfo.isSiteLangInPath()?(pageInfo.getLocaleLang() + "/"):"") +
+                pageInfo.getRelativePath() +
+                (pageInfo.getRequest().getQueryString() != null ?("?" + pageInfo.getRequest().getQueryString()): "");
+        response.setHeader("Location", redirectedUrl);
+        return false;
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object object) throws IOException {
 
-        String contextUrl = request.getRequestURI();
-        String[] tokens = request.getRequestURI().trim().split("/");
-        log.debug("contextUrl: " + contextUrl);
-
-        int level = 0;
-        SiteSettings siteSettings = null;
-        String contextName = tokens.length > 1 ? tokens[1] : "";
-        if (!Strings.isNullOrEmpty(contextName)
-                && webSitesConfig.getMultiSites() != null && webSitesConfig.getMultiSites().size() > 0) {
-            siteSettings = webSitesConfig.getMultiSites().get(contextName);
-        }
-        if (siteSettings != null) {
-            level++;
-        } else {
-            //to do default
-        }
         pageInfo.setRequest(request);
-        pageInfo.setSiteContextPrefix(contextName);
-        pageInfo.setSiteSettings(siteSettings);
+        String contextUrl = request.getRequestURI();
 
-        //static, api
-        if (tokens.length > (level + 1)) {// "", "context", "images" or "api"
-            if (Arrays.stream(siteSettings.getStaticPrefixes()).anyMatch(tokens[level + 1]::equals))
-                return true;
-            if (Arrays.stream(siteSettings.getApiPrefixes()).anyMatch(tokens[level + 1]::equals))
-                return true;
+        Path contextPath = Paths.get(contextUrl).normalize();
+        String[] tokens = new String[contextPath.getNameCount()];
+        for (int i = 0; i < contextPath.getNameCount(); i++){
+            tokens[i] = contextPath.getName(i).toString();
+        }
+        log.debug("Start processing contextUrl: " + contextUrl);
+        if (tokens.length > 0 && "error".equals(tokens[0]))//spring error page
+            return true;
+
+        //context recognition
+        String firstToken = tokens.length > 0 ? tokens[0] : null;
+        if (webSitesConfig.getMultiSites() != null && webSitesConfig.getMultiSites().size() > 0){
+            //multisite
+            if (Strings.isNullOrEmpty(firstToken))
+                throw new ResourceFindException("Context (first path) empty, but it must be in URL for multi contexts site");
+            SiteSettings siteSettings  = webSitesConfig.getMultiSites().get(firstToken);
+            if (siteSettings == null)
+                throw new ResourceFindException("Context " + firstToken + " (first path of URL) not found in multi contexts from site config");
+            pageInfo.setSiteContextPrefix(firstToken);
+            pageInfo.setSiteSettings(siteSettings);
+        }
+        else {
+            pageInfo.setSiteContextPrefix(null);
+            pageInfo.setSiteSettings(webSitesConfig.getWebsite());
+        }
+        if (pageInfo.getDefaultLang() != null &&
+                !pageInfo.getLocaleLang().equals(pageInfo.getDefaultLang())) {
+            pageInfo.setLocale(Locale.of(pageInfo.getDefaultLang()));
+            if (Strings.isNullOrEmpty(pageInfo.getLocale().getLanguage())) {
+                //empty when unsupported lang
+                throw new ResourceFindException(LANG_PREFIX + pageInfo.getDefaultLang() + " is not valid value for locale");
+            }
         }
 
+        if ((pageInfo.getSiteContextPrefix() != null && tokens.length <= 1)
+                || (pageInfo.getSiteContextPrefix() == null && tokens.length <= 0)) {
+            return redirectToMainPage(response);
+        }
+        String langToken = pageInfo.getSiteContextPrefix() != null?tokens[1]:tokens[0];
 
-        Locale locale = null;
-        if (siteSettings.isSiteLangInPath()) {
-            String lang = tokens.length > (level + 1) ? tokens[level + 1] : null;
-            if (lang == null || lang.isBlank()) {
-                log.debug("Lang prefix not found in url but required for site settings");
-                response.sendRedirect(contextUrl + (contextUrl.endsWith("/") ? "" : "/")
-                        + siteSettings.getSiteLangs()[0] + "/"
-                        + siteSettings.getMainPage());
-                return false;
-
-            }
-            if (siteSettings.getSiteLangs() != null && siteSettings.getSiteLangs().length > 0
-                    && Arrays.stream(siteSettings.getSiteLangs()).noneMatch(lang::equals)) {
-                throw new ResourceFindException(LANG_PREFIX + lang + " is not in site langs settings ");
-                //to do redirect
-            }
-            locale = Locale.of(lang);
-            if (Strings.isNullOrEmpty(locale.getLanguage())) {
-                //empty when unsupported lang
-                throw new ResourceFindException(LANG_PREFIX + lang + " is not valid value for locale");
-                //to do redirect
-            }
-            level++;
-        } else {
-
-            AcceptHeaderLocaleResolver acceptHeaderLocaleResolver = applicationContext.getBean(AcceptHeaderLocaleResolver.class);
-            Locale requestLocale = acceptHeaderLocaleResolver.resolveLocale(request);
-            log.debug("locale: " + requestLocale);
-            if (Arrays.stream(siteSettings.getSiteLangs()).noneMatch(requestLocale.getLanguage()::equals)) {
-                log.warn("User requested locale " + requestLocale.getLanguage() + " is not in site settings");
-                String lang = null;
-
-                if (siteSettings.getSiteLangs() != null && siteSettings.getSiteLangs().length > 0) {
-                    lang = siteSettings.getSiteLangs()[0];
-                } else {
-                    lang = "en";
+        //static, api, etc.  - without language in path
+        // "", "context", "images" or "api"
+        if (Arrays.stream(pageInfo.getSiteSettings().getStaticPrefixes()).anyMatch(langToken::equals) ||
+            Arrays.stream(pageInfo.getSiteSettings().getApiPrefixes()).anyMatch(langToken::equals)) {
+            //no lang for this pages
+        }
+        else {
+            //language recognition
+            Locale locale;
+            if (pageInfo.getSiteSettings() != null &&
+                    pageInfo.getSiteSettings().isSiteLangInPath()) {
+                if (pageInfo.getSiteSettings().getSiteLangs() != null && pageInfo.getSiteSettings().getSiteLangs().length > 0
+                        && Arrays.stream(pageInfo.getSiteSettings().getSiteLangs()).noneMatch(langToken::equals)) {
+                    //redirect to lang page
+                    setRelativePath(tokens);
+                    return redirectToLangPage(response);
                 }
-
-                locale = Locale.of(lang);
+                locale = Locale.of(langToken);
                 if (Strings.isNullOrEmpty(locale.getLanguage())) {
                     //empty when unsupported lang
-                    throw new ResourceFindException(LANG_PREFIX + lang + " is not valid value for locale");
+                    throw new ResourceFindException(LANG_PREFIX + langToken + " is not valid value for locale");
                 }
-            } else locale = requestLocale;
+                pageInfo.setPathLang(locale.getLanguage());
+                pageInfo.setLocale(locale);
+            } else {
+                //detect lang by request
+                AcceptHeaderLocaleResolver acceptHeaderLocaleResolver = applicationContext.getBean(AcceptHeaderLocaleResolver.class);
+                Locale requestLocale = acceptHeaderLocaleResolver.resolveLocale(request);
+                if (Arrays.stream(pageInfo.getSiteSettings().getSiteLangs()).noneMatch(requestLocale.getLanguage()::equals)) {
+                    log.warn("User requested locale " + requestLocale.getLanguage() + " is not in site settings");
+                } else {
+                    pageInfo.setLocale(requestLocale);
+                }
+            }
         }
-        pageInfo.setLang(locale.getLanguage());
-        LocaleContextHolder.setLocale(locale);
+        LocaleContextHolder.setLocale(pageInfo.getLocale());
+        //relative path recognition
+        setRelativePath(tokens);
 
-        level++;
-        int startRelativePathIndex = -1;
-        for (int i = 0; i < level; i++) {
-            startRelativePathIndex = contextUrl.indexOf("/", startRelativePathIndex + 1);
-        }
-
-        String relativePath = null;
-        if (startRelativePathIndex != -1)
-            relativePath = contextUrl.substring(startRelativePathIndex + 1);
-
-        if (relativePath == null || relativePath.trim().isEmpty()) {
-            //send 302
-            response.sendRedirect(contextUrl + (contextUrl.endsWith("/") ? "" : "/") + siteSettings.getMainPage());
-            //send 301
-            //use response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
-            //use response.setHeader("Location", newURL);
-            return false;
-
-        }
-
-        int occurrence = StringUtils.countOccurrencesOf(relativePath, "/");
-        level += occurrence;
-
-        pageInfo.setRelativePath(relativePath);
-        pageInfo.setLevel(level);
         pageInfo.parseAdditionalParams();
 
-        log.debug("Processing relativePath: " + pageInfo.getRelativePath() + " level: " + pageInfo.getLevel());
+        log.debug("Successfully processed relativePath: " + pageInfo.getRelativePath() +
+                " locale lang: " + pageInfo.getLocaleLang() +
+                " level: " + pageInfo.getLevel());
 
         return true;
+    }
+
+    private void setRelativePath(String[] tokens) {
+        int i = 0;
+        if (pageInfo.getSiteContextPrefix() != null) i++;
+        if (pageInfo.getPathLang() != null) i++;
+        StringBuilder relativePath = new StringBuilder();
+        for (; i < tokens.length; i++){
+            if (relativePath.length() > 0) relativePath.append("/");
+            relativePath.append(tokens[i]);
+        }
+        pageInfo.setRelativePath(relativePath.toString());
+        pageInfo.setLevel(tokens.length);
     }
 }
