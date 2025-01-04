@@ -154,13 +154,17 @@ public class PageParserService {
     public SrcPageContent processPage(String html) {
         Document doc = parsePage(html);
         SrcPageContent srcPageContent = new SrcPageContent();
-        srcPageContent.setTitle(getTitleFromPage(doc));
-        srcPageContent.setDescription(getMetaDescriptionFromPage(doc));
-        srcPageContent.setKeywords(getMetaKeywordsFromPage(doc));
-        Element body = getBodyFromPage(doc);
-        adjustBody(body);
-        String docHtml = body.html();
-        srcPageContent.setBody(docHtml);
+        if (html != null) {
+            srcPageContent.setTitle(getTitleFromPage(doc));
+            srcPageContent.setDescription(getMetaDescriptionFromPage(doc));
+            srcPageContent.setKeywords(getMetaKeywordsFromPage(doc));
+            Element body = getBodyFromPage(doc);
+            if (body != null) {
+                adjustBody(body);
+                String docHtml = body.html();
+                srcPageContent.setBody(docHtml);
+            }
+        }
         return srcPageContent;
     }
 

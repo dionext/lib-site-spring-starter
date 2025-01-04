@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
@@ -46,11 +45,14 @@ public class SiteContextHandler implements HandlerInterceptor {
         this.applicationContext = applicationContext;
     }
 
-    private boolean redirectToMainPage(HttpServletResponse response)  {
+    private boolean redirectToMainPageRelative(HttpServletResponse response)  {
         //send 302 response.sendRedirect
         //send 301
         response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
-        String redirectedUrl = (pageInfo.isSiteLangInPath()?(pageInfo.getLocaleLang() + "/"):"") +
+        String redirectedUrl = (pageInfo.getRequest().getRequestURI().endsWith("/")?"../":"") +
+                (pageInfo.getLevel() == 1?(pageInfo.getSiteContextPrefix() + "/"):"") +
+                pageInfo.getOffsetStringToContextLevel() +
+                (pageInfo.isSiteLangInPath()?(pageInfo.getLocaleLang() + "/"):"") +
                 pageInfo.getSiteSettings().getMainPage();
         response.setHeader("Location", redirectedUrl);
         return false;
@@ -79,6 +81,7 @@ public class SiteContextHandler implements HandlerInterceptor {
         for (int i = 0; i < contextPath.getNameCount(); i++){
             tokens[i] = contextPath.getName(i).toString();
         }
+        pageInfo.setLevel(tokens.length);
         log.debug("Start processing contextUrl: " + contextUrl);
         if (tokens.length > 0 && "error".equals(tokens[0]))//spring error page
             return true;
@@ -110,7 +113,7 @@ public class SiteContextHandler implements HandlerInterceptor {
 
         if ((pageInfo.getSiteContextPrefix() != null && tokens.length <= 1)
                 || (pageInfo.getSiteContextPrefix() == null && tokens.length <= 0)) {
-            return redirectToMainPage(response);
+            return redirectToMainPageRelative(response);
         }
         String langToken = pageInfo.getSiteContextPrefix() != null?tokens[1]:tokens[0];
 
@@ -127,6 +130,12 @@ public class SiteContextHandler implements HandlerInterceptor {
                     pageInfo.getSiteSettings().isSiteLangInPath()) {
                 if (pageInfo.getSiteSettings().getSiteLangs() != null && pageInfo.getSiteSettings().getSiteLangs().length > 0
                         && Arrays.stream(pageInfo.getSiteSettings().getSiteLangs()).noneMatch(langToken::equals)) {
+                    //test langToken for any valid locale
+                    Locale testLocale = Locale.of(langToken);
+                    if (Strings.isNullOrEmpty(testLocale.getLanguage())) {
+                        pageInfo.setPathLang(pageInfo.getLocale().getLanguage());
+                    }
+                    //else langToken is not lang token
                     //redirect to lang page
                     setRelativePath(tokens);
                     return redirectToLangPage(response);
@@ -150,6 +159,12 @@ public class SiteContextHandler implements HandlerInterceptor {
             }
         }
         LocaleContextHolder.setLocale(pageInfo.getLocale());
+
+        if (tokens.length <=  ((pageInfo.getSiteContextPrefix() != null?1:0)
+                + (pageInfo.getPathLang() != null?1:0))){
+            return redirectToMainPageRelative(response);
+        }
+
         //relative path recognition
         setRelativePath(tokens);
 
@@ -172,6 +187,6 @@ public class SiteContextHandler implements HandlerInterceptor {
             relativePath.append(tokens[i]);
         }
         pageInfo.setRelativePath(relativePath.toString());
-        pageInfo.setLevel(tokens.length);
+
     }
 }

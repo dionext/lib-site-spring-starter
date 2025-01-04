@@ -309,7 +309,7 @@ public class PageInfo {
      */
     public String getOffsetStringToContextLevel() {
         int offset = getLevel() - 1;
-        if (siteContextPrefix != null) offset--;
+        if (siteContextPrefix != null && level > 0) offset--;
         return getLevelString(offset);
     }
 

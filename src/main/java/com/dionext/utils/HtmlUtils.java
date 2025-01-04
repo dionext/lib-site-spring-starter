@@ -15,15 +15,15 @@ public class HtmlUtils {
         return URLDecoder.decode(title, StandardCharsets.UTF_8);
     }
 
-    /**
-     * @param url
-     * @return deprecated
+    /** use this function for encode query params
+     * @param queryParam
+     * @return
      */
-    public static String urlEncode(String url) {
-        return URLEncoder.encode(url, StandardCharsets.UTF_8);
+    public static String urlEncode(String queryParam ) {
+        return URLEncoder.encode(queryParam, StandardCharsets.UTF_8);
     }
 
-    /**
+    /** use this function for encode urp path (not for query params after '?' sign)
      * https://www.baeldung.com/java-url-encoding-decoding
      * it returned the encoded value, and + is not encoded because it is a value character in the path component.
      *

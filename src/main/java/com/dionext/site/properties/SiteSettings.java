@@ -31,7 +31,7 @@ public class SiteSettings {
     private TextItem siteTitle;
 
     private String[] apiPrefixes = {
-            "api", "admin", "login", "sitemap.xml", "robots.txt"
+            "api", "admin", "actuator", "login", "sitemap.xml", "robots.txt"
     };
     private String[] staticPrefixes = {
             "images"
