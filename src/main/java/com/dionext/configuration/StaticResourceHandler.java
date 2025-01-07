@@ -44,9 +44,13 @@ public class StaticResourceHandler implements WebMvcConfigurer {
                 log.debug("static: " + resourceHandler + " ===> " + resourceLocations);
             }
         }
+        registry
+                .addResourceHandler("/**")
+                .addResourceLocations("/public" +  "/")
+                .addResourceLocations("classpath:/static" + "/");
 
         //order https://stackoverflow.com/questions/51768263/resourcehandler-conflict-with-wildcards-in-controllers
-        registry.setOrder(-1);
+        //registry.setOrder(-1);
     }
 
 }

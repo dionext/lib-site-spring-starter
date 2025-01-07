@@ -4,6 +4,7 @@ package com.dionext.configuration;
 import com.dionext.site.components.PageInfo;
 import com.dionext.site.properties.SiteSettings;
 import com.dionext.site.properties.WebSitesConfig;
+import com.dionext.site.services.ResourceService;
 import com.dionext.utils.exceptions.ResourceFindException;
 import com.google.common.base.Strings;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +30,13 @@ public class SiteContextHandler implements HandlerInterceptor {
     private WebSitesConfig webSitesConfig;
     private PageInfo pageInfo;
     private ApplicationContext applicationContext;
+
+    private ResourceService resourceService;
+
+    @Autowired
+    public void setResourceService(ResourceService resourceService) {
+        this.resourceService = resourceService;
+    }
 
     @Autowired
     public void setWebSitesConfig(WebSitesConfig webSitesConfig) {
@@ -87,7 +95,7 @@ public class SiteContextHandler implements HandlerInterceptor {
             return true;
 
         //context recognition
-        String firstToken = tokens.length > 0 ? tokens[0] : null;
+        //String firstToken = tokens.length > 0 ? tokens[0] : null;
         pageInfo.setSiteContextPrefix(null);
         pageInfo.setSiteSettings(webSitesConfig.getWebsite());
         if (pageInfo.getDefaultLang() != null &&
@@ -126,7 +134,10 @@ public class SiteContextHandler implements HandlerInterceptor {
                     //else langToken is not lang token
                     //redirect to lang page
                     setRelativePath(tokens);
-                    return redirectToLangPage(response);
+                    if (pageInfo.getSiteSettings().isRedirectToLangPage())
+                        return redirectToLangPage(response);
+                    else
+                        return true;
                 }
                 locale = Locale.of(langToken);
                 if (Strings.isNullOrEmpty(locale.getLanguage())) {

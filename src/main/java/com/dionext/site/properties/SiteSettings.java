@@ -12,6 +12,7 @@ import java.util.List;
 public class SiteSettings {
     private String[] siteLangs;
     private boolean siteLangInPath = true;
+    private boolean redirectToLangPage = false;
     private String siteDomain;// "somedomain.com"
     private String siteProtocol = "https";
 
