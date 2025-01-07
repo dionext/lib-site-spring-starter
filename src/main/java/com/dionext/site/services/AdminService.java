@@ -18,7 +18,7 @@ import java.util.Set;
 public class AdminService extends PageCreatorService {
     private CacheManager cacheManager;
 
-    @Autowired
+    @Autowired(required = false)
     public void setCacheManager(CacheManager cacheManager) {
         this.cacheManager = cacheManager;
     }
