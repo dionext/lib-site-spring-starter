@@ -13,5 +13,4 @@ import java.util.Map;
 @ConfigurationProperties("web-config")
 public class WebSitesConfig {
     private SiteSettings website;
-    private Map<String, SiteSettings> multiSites;
 }

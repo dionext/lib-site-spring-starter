@@ -88,20 +88,8 @@ public class SiteContextHandler implements HandlerInterceptor {
 
         //context recognition
         String firstToken = tokens.length > 0 ? tokens[0] : null;
-        if (webSitesConfig.getMultiSites() != null && webSitesConfig.getMultiSites().size() > 0){
-            //multisite
-            if (Strings.isNullOrEmpty(firstToken))
-                throw new ResourceFindException("Context (first path) empty, but it must be in URL for multi contexts site");
-            SiteSettings siteSettings  = webSitesConfig.getMultiSites().get(firstToken);
-            if (siteSettings == null)
-                throw new ResourceFindException("Context " + firstToken + " (first path of URL) not found in multi contexts from site config");
-            pageInfo.setSiteContextPrefix(firstToken);
-            pageInfo.setSiteSettings(siteSettings);
-        }
-        else {
-            pageInfo.setSiteContextPrefix(null);
-            pageInfo.setSiteSettings(webSitesConfig.getWebsite());
-        }
+        pageInfo.setSiteContextPrefix(null);
+        pageInfo.setSiteSettings(webSitesConfig.getWebsite());
         if (pageInfo.getDefaultLang() != null &&
                 !pageInfo.getLocaleLang().equals(pageInfo.getDefaultLang())) {
             pageInfo.setLocale(Locale.of(pageInfo.getDefaultLang()));
