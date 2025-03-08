@@ -8,8 +8,6 @@ import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 
-import java.util.Set;
-
 public class FmMarkdownUtils {
 
     static public String markdownToHtml(String markdown) {

@@ -213,7 +213,7 @@ public class ResourceService {
                         }  )) {
                     stream.forEach(filePath -> {
                         String relPath = rootPath.relativize(filePath).toString().replace('\\', '/');
-                        PageUrl pageUrl = filesMap.computeIfAbsent(relPath, k -> {
+                        PageUrl pageUrl = filesMap.computeIfAbsent(relPath, _ -> {
                             PageUrl p = new PageUrl();
                             p.setRelativePath(relPath);
                             return p;

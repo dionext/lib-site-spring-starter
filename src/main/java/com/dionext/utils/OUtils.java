@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-@SuppressWarnings({"unchecked"})
+@SuppressWarnings({})
 public class OUtils {
     private OUtils() {
     }
@@ -37,12 +37,12 @@ public class OUtils {
         }
     }
 
-
+    @SuppressWarnings("unchecked")
     public static <T> List<T> readList(String str, Class<T> type) {
         return readList(str, ArrayList.class, type);
     }
 
-    public static <T> List<T> readList(String str, Class<? extends Collection> type, Class<T> elementType) {
+    public static <T, C extends Collection<T>> List<T> readList(String str, Class<C> type, Class<T> elementType) {
         if (str == null) return Collections.emptyList();
         final ObjectMapper mapper = newMapper();
         try {

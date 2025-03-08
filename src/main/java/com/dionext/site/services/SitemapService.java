@@ -1,18 +1,9 @@
 package com.dionext.site.services;
 
-import com.dionext.site.components.PageInfo;
 import com.dionext.site.dto.PageUrl;
 import com.dionext.site.dto.PageUrlAlt;
-import com.dionext.utils.exceptions.DioRuntimeException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.List;
 

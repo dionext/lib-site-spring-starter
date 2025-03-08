@@ -2,9 +2,7 @@ package com.dionext.configuration;
 
 
 import com.dionext.site.components.PageInfo;
-import com.dionext.site.properties.SiteSettings;
 import com.dionext.site.properties.WebSitesConfig;
-import com.dionext.site.services.ResourceService;
 import com.dionext.utils.exceptions.ResourceFindException;
 import com.google.common.base.Strings;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,12 +29,6 @@ public class SiteContextHandler implements HandlerInterceptor {
     private PageInfo pageInfo;
     private ApplicationContext applicationContext;
 
-    private ResourceService resourceService;
-
-    @Autowired
-    public void setResourceService(ResourceService resourceService) {
-        this.resourceService = resourceService;
-    }
 
     @Autowired
     public void setWebSitesConfig(WebSitesConfig webSitesConfig) {

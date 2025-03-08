@@ -1,6 +1,5 @@
 package com.dionext.site.services;
 
-import com.dionext.configuration.GitMavenProperties;
 import com.dionext.site.components.PageInfo;
 import com.dionext.site.dto.*;
 import com.dionext.site.properties.NavItem;
@@ -14,16 +13,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.info.GitProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.netty.http.client.HttpClient;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
