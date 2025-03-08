@@ -21,25 +21,6 @@ import java.util.List;
 public class SitemapService {
 
 
-    public String downloadPage(String base, PageUrl page, boolean offlineCreationMode) {
-        URI uri;
-        try {
-            uri = new URI(base);
-            uri = uri.resolve(page.getRelativePath());
-        } catch (URISyntaxException e) {
-            throw new DioRuntimeException(e);
-        }
-        WebClient client = WebClient.create(uri.toString());
-
-        ResponseEntity<String> result = client.get()
-                .headers(httpHeaders -> {
-                    if (offlineCreationMode)
-                        httpHeaders.add(PageInfo.REQUEST_HEADER_OFFLINE_CREATION_MODE, "true");
-                })
-                .retrieve().toEntity(String.class)
-                .block();
-        return result != null ? result.getBody() : null;
-    }
     public String createSitemap(List<PageUrl> pages, PageCreatorService pageCreatorService,
                                 boolean langSupport) {
         StringBuilder str = new StringBuilder();

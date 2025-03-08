@@ -1,11 +1,14 @@
 package com.dionext.site.services;
 
+import com.dionext.configuration.GitMavenProperties;
 import com.dionext.site.dto.CacheInfo;
 import com.dionext.utils.OUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -17,6 +20,23 @@ import java.util.Set;
 @Slf4j
 public class AdminService extends PageCreatorService {
     private CacheManager cacheManager;
+
+    private GitMavenProperties gitMavenProperties;
+
+    private Environment environment;
+
+    @Value("${info.version:unknown}")
+    String version;
+
+    @Autowired
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
+    }
+
+    @Autowired
+    public void setGitMavenProperties(GitMavenProperties gitMavenProperties) {
+        this.gitMavenProperties = gitMavenProperties;
+    }
 
     @Autowired(required = false)
     public void setCacheManager(CacheManager cacheManager) {
@@ -56,6 +76,44 @@ public class AdminService extends PageCreatorService {
             str.append("</li>");
         }
         str.append("</ul>");
+
+        str.append("<h1>Git information</h1>");
+
+        str.append("<ul>");
+        if (!"unknown".equals(version)) {
+            str.append("<li>");
+            str.append( " Version: ");
+            str.append(version);
+            str.append("</li>");
+        }
+        String[] activeProfiles = environment.getActiveProfiles();
+        if (activeProfiles != null && activeProfiles.length > 0) {
+            str.append("<li>");
+            str.append( " Profiles: ");
+            for(String v : activeProfiles) {
+                str.append(" ");
+                str.append(v);
+            }
+            str.append("</li>");
+        }
+
+        str.append("<li>");
+        str.append( " Commit id: " + gitMavenProperties.getCommitId());
+        str.append("</li>");
+        str.append("<li>");
+        str.append( " Build time: " + gitMavenProperties.getBuildTime());
+        str.append("</li>");
+        str.append("<li>");
+        str.append( " Build Version: " + gitMavenProperties.getBuildVersion());
+        str.append("</li>");
+        str.append("<li>");
+        str.append( " Branch: " + gitMavenProperties.getBranch());
+        str.append("</li>");
+        str.append("<li>");
+        str.append( " Tags: " + gitMavenProperties.getTags());
+        str.append("</li>");
+        str.append("</ul>");
+
         return str.toString();
     }
 

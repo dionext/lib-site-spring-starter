@@ -288,7 +288,13 @@ public class PageParserService {
                                         + info.getSrcId()
                                         + "\">" + info.getAuthor() +
                                         "</a></small>";
-                                adjustImageByFigure(img, caption);
+                                if ( !(
+                                        (img.parent() != null && "figure".equals(img.parent().nodeName()))
+                                        || (img.parent() != null && img.parent().parent() != null && "figure".equals(img.parent().parent().nodeName()))
+                                    )
+                                ) {
+                                    adjustImageByFigure(img, caption);
+                                }
                             }
                             if (pageInfo.getSiteSettings().isUseExternalUrlForImages()) {
                                 //replace url to absolute url
@@ -301,7 +307,12 @@ public class PageParserService {
                             } else {
                                 String storedPath = info.getAltList().get(info.getAltList().size() - 1).getStoredFilePath();
                                 if (!storedPath.equals(srcRel)) {
-                                    wrapImageByA(img, UriUtils.replaceLastPathofUrl(src, storedPath));
+                                    if ( !(
+                                            (img.parent() != null && "a".equals(img.parent().nodeName()))
+                                                    || (img.parent() != null && img.parent().parent() != null && "a".equals(img.parent().parent().nodeName()))
+                                    )) {
+                                        wrapImageByA(img, UriUtils.replaceLastPathofUrl(src, storedPath));
+                                    }
                                 }
                             }
                         } else {

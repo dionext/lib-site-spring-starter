@@ -32,5 +32,18 @@ public class BaseSiteController {
         responseHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_HTML_VALUE + "; charset=utf-8");
         return new ResponseEntity<>(HtmlUtils.prettyPrint(data), responseHeaders, HttpStatus.OK);
     }
+    protected ResponseEntity<String> sendStringRestOk(String data) {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_HTML_VALUE + "; charset=utf-8");
+        return new ResponseEntity<>(data, responseHeaders, HttpStatus.OK);
+    }
+    protected ResponseEntity<String> sendFragment(String data) {
+        return sendFragment(data, null);
+    }
+    protected ResponseEntity<String> sendFragment(String data, HttpHeaders responseHeaders) {
+        if (responseHeaders == null) responseHeaders = new HttpHeaders();
+        responseHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_HTML_VALUE + "; charset=utf-8");
+        return new ResponseEntity<>(data, responseHeaders, HttpStatus.OK);
+    }
 
 }

@@ -1,15 +1,35 @@
 package com.dionext.site.services;
 
+import com.dionext.configuration.GitMavenProperties;
 import com.dionext.site.components.PageInfo;
 import com.dionext.site.dto.*;
 import com.dionext.site.properties.NavItem;
+import com.dionext.utils.FileUtils;
+import com.dionext.utils.FmMarkdownUtils;
+import com.dionext.utils.exceptions.DioRuntimeException;
 import com.dionext.utils.services.I18nService;
 import com.google.common.base.Strings;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.info.GitProperties;
+import org.springframework.core.env.Environment;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
+import org.springframework.ui.Model;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,12 +37,25 @@ import java.util.List;
 @Service
 @SuppressWarnings({"java:S1192", "java:S5663", "java:S3776", "java:S135"})
 @RequiredArgsConstructor
+@Slf4j
 public class PageCreatorService {
 
     protected PageInfo pageInfo;
     protected ResourceService resourceService;
     protected I18nService i18n;
     PageParserService pageParserService;
+    private Environment environment;
+
+    @Autowired
+    WebClient localhostWebClient;
+
+    @Value("${info.version:unknown}")
+    String version;
+
+    @Autowired
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
+    }
 
     @Autowired
     public void setPageInfo(PageInfo pageInfo) {
@@ -61,6 +94,57 @@ public class PageCreatorService {
         return StringUtils.defaultString(value);
     }
 
+    public String createHtmlAll(String str) {
+        return createHtmlAll(new SrcPageContent(str));
+    }
+
+    public void prepareTemplateModel(Model model){
+
+        SrcPageContent srcPageContent = new SrcPageContent();
+
+        if (!Strings.isNullOrEmpty(srcPageContent.getTitle()))
+            pageInfo.setPageTitle(srcPageContent.getTitle());
+        if (!Strings.isNullOrEmpty(srcPageContent.getKeywords()))
+            pageInfo.setKeywords(srcPageContent.getKeywords());
+        if (!Strings.isNullOrEmpty(srcPageContent.getDescription()))
+            pageInfo.setDescription(srcPageContent.getDescription());
+
+
+        StringBuilder html = new StringBuilder();
+        html.append(dfs(createHeadContentType()));
+        html.append(dfs(createHeadTitle()));
+        if (!pageInfo.isOfflineCreationMode()) {
+            html.append(dfs(createHeadLocaleLinks()));
+        }
+        if (!pageInfo.isOfflineCreationMode()) {
+            html.append(dfs(createHeadMetaDescription()));
+        } else html.append(dfs(copyHeadMeta(srcPageContent)));
+        if (!pageInfo.isOfflineCreationMode()) {
+            html.append(dfs(createHeadMetaForIcons()));
+            html.append(dfs(createHeadMetaForSocialMedia()));
+            html.append(dfs(createHeadBootstrap()));
+            html.append(dfs(createHeadScripts()));
+            html.append(dfs(createHeadBottom()));
+        }
+        model.addAttribute("header", html.toString());
+
+        html = new StringBuilder();
+        if (!pageInfo.isOfflineCreationMode()) {
+            html.append(dfs(createBodyTop()));
+        }
+        model.addAttribute("bodyTop", html.toString());
+
+        html = new StringBuilder();
+        if (!pageInfo.isOfflineCreationMode()) {
+            html.append(dfs(createBodyBottomHtml()));
+            html.append(dfs(createBodyBootstrap()));
+            html.append(dfs(createBodyScripts()));
+            html.append(dfs(createBodySearchEngineScripts()));
+        }
+        model.addAttribute("bodyBottom", html.toString());
+
+    }
+
     public String createHtmlAll(SrcPageContent srcPageContent) {
 
         if (!Strings.isNullOrEmpty(srcPageContent.getTitle()))
@@ -85,6 +169,7 @@ public class PageCreatorService {
             html.append(dfs(createHeadMetaForIcons()));
             html.append(dfs(createHeadMetaForSocialMedia()));
             html.append(dfs(createHeadBootstrap()));
+            html.append(dfs(createHeadScripts()));
             html.append(dfs(createHeadBottom()));
         }
         html.append("</head>");
@@ -218,6 +303,25 @@ public class PageCreatorService {
 
     public String createBodyBottomInformation() {
         return null;
+    }
+
+    protected String getVersionInformation(){
+        StringBuilder str = new StringBuilder();
+        if (!"unknown".equals(version)) {
+            str.append("v ");
+            str.append(version);
+        }
+        String[] activeProfiles = environment.getActiveProfiles();
+        if (activeProfiles != null && activeProfiles.length > 0) {
+            str.append( " Profiles: ");
+            for(String v : activeProfiles) {
+                if (!"prod".equals(v)) {
+                    str.append(" ");
+                    str.append(v);
+                }
+            }
+        }
+        return str.toString();
     }
 
     public String createBodyBottomHtml() {
@@ -810,6 +914,12 @@ public class PageCreatorService {
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous"/>
                 """;
     }
+    public String createHeadScripts() {
+        return """
+            <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>               
+            """;
+        //<script src="https://cdn.tailwindcss.com"></script>
+    }
 
     public String createBodyBootstrap() {
         return """
@@ -819,7 +929,6 @@ public class PageCreatorService {
                 <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" crossorigin="anonymous"></script>
                 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
                 """;
-
     }
 
     public String createBodySearchEngineScripts() {
@@ -843,4 +952,93 @@ public class PageCreatorService {
                 pageInfo.getSiteSettings().isSiteLangInPath() ?
                 pageInfo.getPageLangs():null);
     }
+
+    public int generateOfflinePages(boolean genMd) {
+
+        int filesCount = 0;
+        Path outputRootDir = resourceService.getMainWorkingPath(pageInfo.getSiteStoragePaths());
+
+        List<PageUrl> list = this.findAllPages();
+        for (String lang : pageInfo.getSiteSettings().getSiteLangs()) {
+            //String base = "http://localhost:" + serverPort + "/" + (pageInfo.isSiteLangInPath() ? (lang + "/") : "");
+            String base =  (pageInfo.isSiteLangInPath() ? (lang + "/") : "");
+            Path outputOfflineDir = outputRootDir.resolve("offline").resolve(lang);
+            Path outputOfflineFullDir = outputRootDir.resolve("offline_full").resolve(lang);
+            Path outputOfflineMdDir = outputRootDir.resolve("offline_md").resolve(lang);
+            Path outputOfflineReDir = outputRootDir.resolve("offline_re").resolve(lang);
+            for (var offlinePage : list) {
+                log.debug(offlinePage.getRelativePath());
+                String htmlStr = this.downloadPage(base, offlinePage, true);
+                saveFile(outputOfflineDir.resolve(offlinePage.getRelativePath()), htmlStr);
+                String htmlFullStr = this.downloadPage(base, offlinePage, false);
+                saveFile(outputOfflineFullDir.resolve(offlinePage.getRelativePath()), htmlFullStr);
+                if (genMd) {
+                    //md
+                    String mdStr = FmMarkdownUtils.htmlToMarkdown(htmlStr);
+                    Path mdpath = outputOfflineMdDir.resolve(offlinePage.getRelativePath());
+                    mdpath = FileUtils.changeFileExtension(mdpath, ".md");
+                    saveFile(mdpath, mdStr);
+                    //html reconverted from md
+                    String htmlReStr = FmMarkdownUtils.markdownToHtml(mdStr);
+                    saveFile(outputOfflineReDir.resolve(offlinePage.getRelativePath()), htmlReStr);
+                }
+                filesCount ++;
+            }
+        }
+        return filesCount;
+    }
+
+    private static void saveFile(Path mdpath, String mdStr) {
+        try {
+            File file = mdpath.toFile();
+            if (!file.getParentFile().exists()) file.getParentFile().mkdirs();
+            Files.writeString(mdpath, mdStr);
+        } catch (IOException e) {
+            throw new DioRuntimeException();
+        }
+    }
+
+    public String downloadPage(String base, PageUrl page, boolean offlineCreationMode) {
+
+        URI uri;
+        try {
+            uri = new URI(base);
+            uri = uri.resolve(page.getRelativePath());
+        } catch (URISyntaxException e) {
+            throw new DioRuntimeException(e);
+        }
+
+        ResponseEntity<String> result = localhostWebClient.get()
+                .uri(uri.toString())
+                .headers(httpHeaders -> {
+                    if (offlineCreationMode)
+                        httpHeaders.add(PageInfo.REQUEST_HEADER_OFFLINE_CREATION_MODE, "true");
+                })
+                .retrieve().toEntity(String.class)
+                .block();
+
+        /*
+        WebClient client = WebClient.create(uri.toString());
+        WebClient.builder()
+                .baseUrl(uri.toString())
+                .exchangeStrategies(ExchangeStrategies
+                        .builder()
+                        .codecs(codecs -> codecs
+                                .defaultCodecs()
+                                .maxInMemorySize(2048 * 1024))
+                        .build())
+                .clientConnector(new ReactorClientHttpConnector(HttpClient.from(tcpClient)))
+                .build();
+        ResponseEntity<String> result = client.get()
+                .headers(httpHeaders -> {
+                    if (offlineCreationMode)
+                        httpHeaders.add(PageInfo.REQUEST_HEADER_OFFLINE_CREATION_MODE, "true");
+                })
+                .retrieve().toEntity(String.class)
+                .block();
+
+         */
+        return result != null ? result.getBody() : null;
+    }
+
 }

@@ -176,6 +176,22 @@ public class ResourceService {
         return filesMap.values().stream().toList();
     }
 
+    public Path getMainWorkingPath(String[] prefixes){
+        if (prefixes == null || prefixes.length == 0) return null;
+        String prefix = prefixes[0];
+        Resource resource = resourceLoader.getResource(prefix);
+        if (resource.exists()) {
+            try {
+                Path path = resource.getFile().toPath();
+                path = path.getParent();
+                return path;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return null;
+    }
+
     private void findAllPagesForLang(String lang, String prefix, Map<String, PageUrl> filesMap) {
         Resource resource = resourceLoader.getResource(prefix + (lang != null ? ("/" + lang):""));
         try {

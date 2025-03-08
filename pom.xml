@@ -19,16 +19,9 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>23</java.version>
-		<!--<libMsSpringStarter>1.0.0</libMsSpringStarter>-->
 	</properties>
 
 	<dependencies>
-		<!-- dionext dependencies -->
-		<!--<dependency>
-			<groupId>com.dionext</groupId>
-			<artifactId>lib-ms-spring-starter</artifactId>
-			<version>${libMsSpringStarter}</version>
-		</dependency>-->
 
 		<!-- spring and common dependencies -->
 		<dependency>
@@ -65,6 +58,7 @@
 			<artifactId>jsoup</artifactId>
 			<version>1.14.3</version>
 			<!-- https://github.com/jhy/jsoup/issues/1776  <version>1.17.2</version>-->
+			<!--<version>1.18.3</version> not improved-->
 		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -76,11 +70,28 @@
 			<artifactId>commons-lang3</artifactId>
 			<version>3.14.0</version>
 		</dependency>
+		<!-- markdown to html -->
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>0.24.0</version>
+		</dependency>
+		<!--<dependency>
+    <groupId>com.vladsch.flexmark</groupId>
+    <artifactId>flexmark</artifactId>
+    <version>0.64.8</version>
+</dependency>-->
+		<dependency>
+			<groupId>com.vladsch.flexmark</groupId>
+			<artifactId>flexmark-all</artifactId>
+			<version>0.64.8</version>
+		</dependency>
 		<!-- WebClient -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
+
 		<!-- metrics -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

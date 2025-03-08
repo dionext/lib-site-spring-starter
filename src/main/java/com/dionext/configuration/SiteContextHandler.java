@@ -111,7 +111,9 @@ public class SiteContextHandler implements HandlerInterceptor {
                 || (pageInfo.getSiteContextPrefix() == null && tokens.length <= 0)) {
             return redirectToMainPageRelative(response);
         }
-        String langToken = pageInfo.getSiteContextPrefix() != null?tokens[1]:tokens[0];
+        String langToken = request.getParameter("lang");
+        if (langToken == null)
+            langToken = pageInfo.getSiteContextPrefix() != null?tokens[1]:tokens[0];
 
         //static, api, etc.  - without language in path
         // "", "context", "images" or "api"
