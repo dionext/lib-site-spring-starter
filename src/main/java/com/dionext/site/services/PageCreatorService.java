@@ -10,6 +10,7 @@ import com.dionext.utils.services.I18nService;
 import com.google.common.base.Strings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.security.SecurityUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -532,42 +533,49 @@ public class PageCreatorService {
 
     //to do multi lang
     public String createBodyTopMenuLangSelector() {
+        StringBuilder str = new StringBuilder();
+        str.append("""
+                <div class="collapse navbar-collapse justify-content-md-end" id="navbar">""");
+
+        str.append(createBodyTopMenuSignIn());
+
+
         if (pageInfo.getPathLang() != null && pageInfo.getPageLangs().length > 1
                 && pageInfo.isAnotherLangPageExist()) {
-            StringBuilder str = new StringBuilder();
+
             str.append("""
-                <div class="collapse navbar-collapse justify-content-md-end" id="navbar">""");
-            str.append("""
-                <ul class="navbar-nav">""");
+                    <ul class="navbar-nav">""");
 
             //current lang
             String dlang = pageInfo.getLocaleLang();
-              str.append(MessageFormat.format("""
-                      <li class="nav-item dropdown active">
-                   <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
-                      <span class="flag-icon flag-icon-{0}"> </span> {1}</a>"""
-                    , "en".equals(dlang)?"gb":dlang, dlang));
+            str.append(MessageFormat.format("""
+                               <li class="nav-item dropdown active">
+                            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+                               <span class="flag-icon flag-icon-{0}"> </span> {1}</a>"""
+                    , "en".equals(dlang) ? "gb" : dlang, dlang));
 
             //other langs
             str.append("""
                         <ul class="dropdown-menu">
                     """);
-            for(String lang : pageInfo.getPageLangs()){
-                    str.append(MessageFormat.format("""
-                       <li>
-                       <a class="dropdown-item" href="{0}"><span class="flag-icon flag-icon-{1}"></span> {2}</a>
-                       </li>
-                       """
-                       ,pageInfo.getOffsetStringToContextLevel() + lang + "/" + pageInfo.getRelativePath(),
-                         "en".equals(lang)?"gb":lang, lang));
+            for (String lang : pageInfo.getPageLangs()) {
+                str.append(MessageFormat.format("""
+                                <li>
+                                <a class="dropdown-item" href="{0}"><span class="flag-icon flag-icon-{1}"></span> {2}</a>
+                                </li>
+                                """
+                        , pageInfo.getOffsetStringToContextLevel() + lang + "/" + pageInfo.getRelativePath(),
+                        "en".equals(lang) ? "gb" : lang, lang));
             }
-            str.append("</ul></li><!-- bbb -->");
+            str.append("</ul></li>");
             str.append("</ul>");
-            str.append("</div>");
-
-            return str.toString();
         }
-        else return "";
+        str.append("</div>");
+        return str.toString();
+    }
+
+    public String createBodyTopMenuSignIn() {
+        return "";
     }
 
 
