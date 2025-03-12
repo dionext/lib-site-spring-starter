@@ -6,6 +6,7 @@ public class ImageDrawInfo {
     private int height = -1;
     private String title;
     private String href;
+    private String modalDialogId;
     private boolean blank;
     private boolean noExt;
     private boolean inDiv;
@@ -127,5 +128,13 @@ public class ImageDrawInfo {
 
     public void setNoindex(boolean noindex) {
         this.noindex = noindex;
+    }
+
+    public String getModalDialogId() {
+        return modalDialogId;
+    }
+
+    public void setModalDialogId(String modalDialogId) {
+        this.modalDialogId = modalDialogId;
     }
 }

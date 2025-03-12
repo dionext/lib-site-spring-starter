@@ -31,9 +31,9 @@ public class SiteSettings {
     private TextItem description;
     private TextItem siteTitle;
 
-    private String[] apiPrefixes = {
-            "api", "admin", "actuator", "login", "sitemap.xml", "robots.txt"
-    };
+    //private String[] apiPrefixes = {
+    //        "api", "admin", "actuator", "login", "sitemap.xml", "robots.txt"
+    //};
     private String[] staticPrefixes = {
             "images"
     };
@@ -55,5 +55,7 @@ public class SiteSettings {
      * https://support.google.com/tagmanager/answer/12326985?sjid=14390354239745976899-NA
      */
     private String googleTagID;
+
+    private boolean showSignIn = false;
 
 }

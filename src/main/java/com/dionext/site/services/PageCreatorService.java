@@ -93,6 +93,16 @@ public class PageCreatorService {
         return createHtmlAll(new SrcPageContent(str));
     }
 
+    public boolean isUserInRole(String role){
+        return false;
+    }
+    public boolean isUserInAnyRole(List<String> roles){
+        for(String role : roles){
+            if (isUserInRole(role)) return true;
+        }
+        return false;
+    }
+
     public void prepareTemplateModel(Model model){
 
         SrcPageContent srcPageContent = new SrcPageContent();
@@ -214,43 +224,45 @@ public class PageCreatorService {
         StringBuilder str = new StringBuilder();
         if (items != null) {
             for (NavItem item : items) {
-                if (item.getSubitems() != null && !item.getSubitems().isEmpty()) {
-                    str.append("""            
-                            <li class="nav-item dropdown">""");
-                    str.append("""            
-                            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">""");
-                    str.append(item.getLabel(i18n));
-                    str.append("</a>");
-                } else {
-                    if (level == 0) {
+                if (item.getRoles() == null ||  isUserInAnyRole(item.getRoles())) {
+                    if (item.getSubitems() != null && !item.getSubitems().isEmpty()) {
                         str.append("""            
-                                <li class="nav-item active">""");
-                    } else {
+                                <li class="nav-item dropdown">""");
                         str.append("""            
-                                <li>""");
-                    }
-                    if (item.getUrl() != null) {
-                        str.append(MessageFormat.format("""
-                                        <a class="{0}" href="{1}">{2}</a>""",
-                                ((level == 0) ? "nav-link" : "dropdown-item"),
-                                (pageInfo.getOffsetStringToNavigationRoot() + item.getUrl()),
-                                item.getLabel(i18n)
-                        ));
-                    } else {
+                                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">""");
                         str.append(item.getLabel(i18n));
+                        str.append("</a>");
+                    } else {
+                        if (level == 0) {
+                            str.append("""            
+                                    <li class="nav-item active">""");
+                        } else {
+                            str.append("""            
+                                    <li>""");
+                        }
+                        if (item.getUrl() != null) {
+                            str.append(MessageFormat.format("""
+                                            <a class="{0}" href="{1}">{2}</a>""",
+                                    ((level == 0) ? "nav-link" : "dropdown-item"),
+                                    item.getUrl().startsWith ("/")?item.getUrl():(pageInfo.getOffsetStringToNavigationRoot() + item.getUrl()),
+                                    item.getLabel(i18n)
+                            ));
+                        } else {
+                            str.append(item.getLabel(i18n));
+                        }
                     }
-                }
 
-                if (item.getSubitems() != null && !item.getSubitems().isEmpty()) {
-                    str.append("""            
-                                <ul class="dropdown-menu">
-                            """);
-                    str.append(createBodyTopMenuHierLevel(item.getSubitems(), level + 1));
-                    str.append("""            
-                                </ul>
-                            """);
+                    if (item.getSubitems() != null && !item.getSubitems().isEmpty()) {
+                        str.append("""            
+                                    <ul class="dropdown-menu">
+                                """);
+                        str.append(createBodyTopMenuHierLevel(item.getSubitems(), level + 1));
+                        str.append("""            
+                                    </ul>
+                                """);
+                    }
+                    str.append("</li>");
                 }
-                str.append("</li>");
             }
         }
         return str.toString();
@@ -290,7 +302,7 @@ public class PageCreatorService {
         str.append("</div>");
 
         //right
-        str.append(createBodyTopMenuLangSelector());
+        str.append(createBodyTopMenuRightBlock());
         str.append("</section>");
         return str.toString();
     }
@@ -338,61 +350,65 @@ public class PageCreatorService {
     public String createBodyBottomMenu() {
         StringBuilder str = new StringBuilder();
         boolean first = true;
-        for (var g : pageInfo.getSiteSettings().getNav()) {
-            if (!first && (g.getSubitems() == null || g.getSubitems().isEmpty())) {
-                //in the bottom menu (since it is always open) we do not show groups without child records if they are already found in top groups
-                //find
-                boolean found = false;
-                for (var g1 : pageInfo.getSiteSettings().getNav()) {
-                    if (g.getUrl().equals(g1.getUrl())) {
-                        found = true;
-                        break;
-                    }
-                    if (g.getSubitems() != null) {
-                        for (var m1 : g.getSubitems()) {
-                            if (g.getUrl().equals(m1.getUrl())) {
-                                found = true;
-                                break;
+        for (NavItem g : pageInfo.getSiteSettings().getNav()) {
+            if (g.getRoles() == null || isUserInAnyRole(g.getRoles())) {
+               if (!first && (g.getSubitems() == null || g.getSubitems().isEmpty())) {
+                    //in the bottom menu (since it is always open) we do not show groups without child records if they are already found in top groups
+                    //find
+                    boolean found = false;
+                    for (NavItem g1 : pageInfo.getSiteSettings().getNav()) {
+                        if (g.getUrl().equals(g1.getUrl())) {
+                            found = true;
+                            break;
+                        }
+                        if (g.getSubitems() != null) {
+                            for (var m1 : g.getSubitems()) {
+                                if (g.getUrl().equals(m1.getUrl())) {
+                                    found = true;
+                                    break;
+                                }
                             }
+                        }
+                        if (found) {
+                            break;
                         }
                     }
                     if (found) {
-                        break;
+                        continue;
                     }
                 }
-                if (found) {
-                    continue;
-                }
-            }
-            str.append("""
-                    <div class="col-6 col-md">""");
-            str.append("""
-                    <h5>""");
-            if (g.getUrl() != null) {
-                str.append(MessageFormat.format("""
-                                <a class="text-muted" href="{0}">{1}</a>""",
-                        pageInfo.getOffsetStringToNavigationRoot() + g.getUrl(),
-                        g.getLabel(i18n)));
-            } else {
-                str.append(g.getLabel(i18n));
-            }
-            str.append("""
-                    </h5>""");
-            str.append("""
-                    <ul class="list-unstyled text-small">""");
-            if (g.getSubitems() != null) {
-                for (var m : g.getSubitems()) {
+                str.append("""
+                        <div class="col-6 col-md">""");
+                str.append("""
+                        <h5>""");
+                if (g.getUrl() != null) {
                     str.append(MessageFormat.format("""
-                                    <li><a class="text-muted" href="{0}">{1}</a></li>""",
-                            pageInfo.getOffsetStringToNavigationRoot() + m.getUrl(),
-                            m.getLabel(i18n)));
+                                    <a class="text-muted" href="{0}">{1}</a>""",
+                            g.getUrl().startsWith ("/")?g.getUrl():(pageInfo.getOffsetStringToNavigationRoot() + g.getUrl()),
+                            g.getLabel(i18n)));
+                } else {
+                    str.append(g.getLabel(i18n));
                 }
+                str.append("""
+                        </h5>""");
+                str.append("""
+                        <ul class="list-unstyled text-small">""");
+                if (g.getSubitems() != null) {
+                    for (var m : g.getSubitems()) {
+                        if (m.getRoles() == null || isUserInAnyRole(m.getRoles())) {
+                            str.append(MessageFormat.format("""
+                                            <li><a class="text-muted" href="{0}">{1}</a></li>""",
+                                    m.getUrl().startsWith ("/")?m.getUrl():(pageInfo.getOffsetStringToNavigationRoot() + m.getUrl()),
+                                    m.getLabel(i18n)));
+                        }
+                    }
+                }
+                str.append("""
+                        </ul>""");
+                str.append("""
+                        </div>""");
+                first = false;
             }
-            str.append("""
-                    </ul>""");
-            str.append("""
-                    </div>""");
-            first = false;
         }
         return str.toString();
     }
@@ -530,16 +546,22 @@ public class PageCreatorService {
         return str.toString();
     }
 
-
-    //to do multi lang
-    public String createBodyTopMenuLangSelector() {
+    public String createBodyTopMenuRightBlock() {
         StringBuilder str = new StringBuilder();
         str.append("""
                 <div class="collapse navbar-collapse justify-content-md-end" id="navbar">""");
 
         str.append(createBodyTopMenuSignIn());
+        str.append(createBodyTopMenuLangSelector());
 
+        str.append("</div>");
+        return str.toString();
 
+    }
+
+    //to do multi lang
+    public String createBodyTopMenuLangSelector() {
+        StringBuilder str = new StringBuilder();
         if (pageInfo.getPathLang() != null && pageInfo.getPageLangs().length > 1
                 && pageInfo.isAnotherLangPageExist()) {
 
@@ -570,7 +592,6 @@ public class PageCreatorService {
             str.append("</ul></li>");
             str.append("</ul>");
         }
-        str.append("</div>");
         return str.toString();
     }
 
@@ -609,9 +630,17 @@ public class PageCreatorService {
         }
 
 
-        if (imageDrawInfo.getHref() != null) {
+        if (imageDrawInfo.getHref() != null || imageDrawInfo.getModalDialogId() != null ) {
             str.append("""
                     <a""");
+            if (imageDrawInfo.getModalDialogId() != null) {
+                str.append(" ");
+                str.append(MessageFormat.format("""
+                        data-bs-toggle="modal" data-bs-target="#{0}" 
+                        """, imageDrawInfo.getModalDialogId()));
+                str.append(" ");
+            }
+
             if (imageDrawInfo.getTitle() != null) {
                 str.append("""
                          title="
@@ -639,11 +668,16 @@ public class PageCreatorService {
             str.append("""
                      href="
                     """.stripTrailing());
-            if (!imageDrawInfo.getHref().startsWith("http")
-                    && imageDrawInfo.getHref().startsWith("images")) {
-                str.append(pageInfo.getOffsetStringToContextLevel());
+            if (imageDrawInfo.getModalDialogId() != null){
+                str.append("#");
             }
-            str.append(imageDrawInfo.getHref());
+            else {
+                if (!imageDrawInfo.getHref().startsWith("http")
+                        && imageDrawInfo.getHref().startsWith("images")) {
+                    str.append(pageInfo.getOffsetStringToContextLevel());
+                }
+                str.append(imageDrawInfo.getHref());
+            }
             str.append("""
                     ">""");
         }
@@ -697,7 +731,7 @@ public class PageCreatorService {
 
         str.append("""
                 >""");
-        if (imageDrawInfo.getHref() != null) {
+        if (imageDrawInfo.getHref() != null || imageDrawInfo.getModalDialogId() != null ) {
             str.append("""
                     </a>""");
         }
@@ -1043,4 +1077,56 @@ public class PageCreatorService {
         return result != null ? result.getBody() : null;
     }
 
+    public String createAICautionImage(){
+        StringBuilder str = new StringBuilder();
+        ImageDrawInfo tempVar = new ImageDrawInfo();
+        tempVar.setImagePath("images/ai_left_16.png");
+        tempVar.setWidth(-1);
+        tempVar.setHeight(-1);
+        if (!pageInfo.isSearchEngine()) {
+            tempVar.setTitle(i18n.getString("ai.caution.title"));
+            //tempVar.setHref("#");
+            tempVar.setModalDialogId("aiCautionModal");
+        }
+        tempVar.setBlank(false);
+        tempVar.setNoindex(true);
+        str.append(createImage(tempVar));
+
+            /*
+            tempVar.setImagePath("images/ai_right_16.png");
+            tempVar.setWidth(-1);
+            tempVar.setHeight(-1);
+            tempVar.setTitle("AI generated content: end");
+            str.append(createImage(tempVar));
+             */
+        return str.toString();
+    }
+    public String createAICautionModalDialog(){
+        return createSimpleModalDialog(i18n.getString("ai.caution.dialog.title"),
+                i18n.getString("ai.caution.dialog.text"),
+                i18n.getString("ai.caution.dialog.close"));
+    }
+    public String createSimpleModalDialog(String title, String text, String closeButtonText){
+        return MessageFormat.format(
+                """
+                <!-- Modal -->
+                <div class="modal fade" id="aiCautionModal" tabindex="-1" aria-labelledby="aiCautionModalLabel" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="aiCautionModalLabel">{0}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        {1}
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{2}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>            
+                """,title, text,  closeButtonText
+        );
+    }
 }

@@ -15,6 +15,7 @@ import java.util.Locale;
 @RequestScope
 @Slf4j
 public class PageInfo {
+
     public static final String REQUEST_HEADER_OFFLINE_CREATION_MODE = "REQUEST_HEADER_OFFLINE_CREATION_MODE";
     I18nService i18n;
     SiteSettings siteSettings;
@@ -30,7 +31,7 @@ public class PageInfo {
      * count of segments in request.getRequestURI()
      */
     private int level;
-    private String siteContextPrefix;
+    //private String siteContextPrefix;
     private String pageTitle;
     private String keywords;
     //The suggested length of meta description is somewhere between 150 to 160 characters including spaces.
@@ -39,6 +40,7 @@ public class PageInfo {
     private String pageImage;//abs
 
     private HttpServletRequest request;
+    private boolean searchEngine;
 
     @Autowired
     public void setI18n(I18nService i18n) {
@@ -53,13 +55,6 @@ public class PageInfo {
         this.request = request;
     }
 
-    public String getSiteContextPrefix() {
-        return siteContextPrefix;
-    }
-
-    public void setSiteContextPrefix(String siteContextPrefix) {
-        this.siteContextPrefix = siteContextPrefix;
-    }
 
     public String[] getPageLangs() {
         if (siteSettings == null) return new String[]{};
@@ -85,6 +80,14 @@ public class PageInfo {
 
     public void setRelativePath(String relativePath) {
         this.relativePath = relativePath;
+    }
+
+    public boolean isSearchEngine() {
+        return searchEngine;
+    }
+
+    public void setSearchEngine(boolean searchEngine) {
+        this.searchEngine = searchEngine;
     }
 
     public String getPathLang() {
@@ -293,9 +296,9 @@ public class PageInfo {
      */
     public String getOffsetStringToNavigationRoot() {
         int offset = getLevel() - 1;
-        if (siteContextPrefix != null) offset--;
+        //if (siteContextPrefix != null) offset--;
         if (pathLang != null) offset--;
-        return getLevelString(offset);
+        return getLevelString(offset) + ((this.getPathLang() == null && siteSettings.isSiteLangInPath() )?(getLocaleLang() + "/"):"") ;
     }
 
     /**
@@ -309,7 +312,7 @@ public class PageInfo {
      */
     public String getOffsetStringToContextLevel() {
         int offset = getLevel() - 1;
-        if (siteContextPrefix != null && level > 0) offset--;
+        //if (siteContextPrefix != null && level > 0) offset--;
         return getLevelString(offset);
     }
 
@@ -342,5 +345,4 @@ public class PageInfo {
             if (!list) id = HtmlUtils.urlDecode(itemId);
         }
     }
-
 }

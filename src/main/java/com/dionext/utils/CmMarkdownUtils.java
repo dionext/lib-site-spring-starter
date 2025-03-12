@@ -9,48 +9,39 @@ import org.commonmark.renderer.html.HtmlNodeRendererContext;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.commonmark.renderer.html.HtmlWriter;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Set;
 
 public class CmMarkdownUtils {
 
-    // Custom NodeRenderer to convert all headers to <h3>
-    static class CustomHeaderRenderer implements NodeRenderer {
-        private final HtmlWriter htmlWriter;
-
-        public CustomHeaderRenderer(HtmlNodeRendererContext context) {
-            this.htmlWriter = context.getWriter();
-        }
-
-        @Override
-        public Set<Class<? extends Node>> getNodeTypes() {
-            // Handle all types of headers
-            return Set.of(Heading.class);
-        }
-
-        @Override
-        public void render(Node node) {
-            // Render all headers as <h3>
-            htmlWriter.tag("h4");
-            for (Node child = node.getFirstChild(); child != null; child = child.getNext()) {
-                if (child instanceof Text) {
-                    htmlWriter.text(((Text) child).getLiteral());
-                }
-            }
-            htmlWriter.tag("/h4");
-        }
+    static public String markdownToHtml(String markdown) {
+        return markdownToHtml(markdown, null);
     }
 
-    static public String markdownToHtml(String markdown) {
+    static public String markdownToHtml(String markdown, Class rendererClass) {
         if (markdown == null) return null;
         if (markdown.isEmpty() || markdown.isBlank()) return "";
 
         Parser parser = Parser.builder().build();
         Node document = parser.parse(markdown);
-        // Create a renderer with the custom header renderer
-        HtmlRenderer renderer = HtmlRenderer.builder()
-                .nodeRendererFactory(context -> new CustomHeaderRenderer(context))
-                .build();
-        //HtmlRenderer renderer = HtmlRenderer.builder().build();
+        HtmlRenderer renderer = null;
+        if (rendererClass != null) {
+            // Create a renderer with the custom header renderer
+            renderer = HtmlRenderer.builder()
+                    .nodeRendererFactory(context ->
+                    {
+                        try {
+                            return (NodeRenderer) rendererClass.getDeclaredConstructor(HtmlNodeRendererContext.class).newInstance(context);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    //new CustomHeaderRenderer(context))
+                    .build();
+        }
+        else {
+            renderer = HtmlRenderer.builder().build();
+        }
         return renderer.render(document);
     }
 

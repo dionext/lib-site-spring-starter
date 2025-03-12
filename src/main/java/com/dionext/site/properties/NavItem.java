@@ -12,4 +12,5 @@ import java.util.List;
 public class NavItem extends TextItem {
     private String url;
     private List<NavItem> subitems;
+    private List<String> roles;
 }
